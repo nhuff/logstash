@@ -313,11 +313,11 @@ describe LogStash::Filters::Grep do
     end
     #one match
     sample "bye world" do
-      insist { subject }.nil?
+      reject { subject }.nil?
     end
     #one match
     sample "hello Jordan" do
-      insist { subject }.nil?
+      reject { subject }.nil?
     end
     #no match
     sample "WTF" do

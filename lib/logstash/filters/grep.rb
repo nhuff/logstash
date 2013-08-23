@@ -95,17 +95,10 @@ class LogStash::Filters::Grep < LogStash::Filters::Base
       regexes.each do |re|
         match_want += 1
 
-        # Events without this field, with negate enabled, count as a match.
-        # With negate disabled, we can't possibly match, so skip ahead.
+        # Events without this field, we can't possibly match, so skip ahead.
         if event[field].nil?
-          if @negate
-            msg = "Field not present, but negate is true; marking as a match"
-            @logger.debug(msg, :field => field, :event => event)
-            match_count += 1
-          else
-            @logger.debug("Skipping match object, field not present",
+          @logger.debug("Skipping match object, field not present",
                           :field => field, :event => event)
-          end
           # Either way, don't try to process -- may end up with extra unwanted
           # +1's to match_count
           next
@@ -113,15 +106,9 @@ class LogStash::Filters::Grep < LogStash::Filters::Base
 
         (event[field].is_a?(Array) ? event[field] : [event[field]]).each do |value|
           value = value.to_s if value.is_a?(Numeric)
-          if @negate
-            @logger.debug("negate match", :regexp => re, :value => value)
-            next if re.match(value)
-            @logger.debug("grep not-matched (negate requested)", field => value)
-          else
-            @logger.debug("want match", :regexp => re, :value => value)
-            next unless re.match(value)
-            @logger.debug("grep matched", field => value)
-          end
+          @logger.debug("want match", :regexp => re, :value => value)
+          next unless re.match(value)
+          @logger.debug("grep matched", field => value)
           match_count += 1
           break
         end # each value in event[field]
@@ -135,7 +122,7 @@ class LogStash::Filters::Grep < LogStash::Filters::Base
       end # match["match"].each
     end # @patterns.each
 
-    if matches == @patterns.length
+    if (matches == @patterns.length) ^ @negate
       filter_matched(event)
     else
       if @drop == true
